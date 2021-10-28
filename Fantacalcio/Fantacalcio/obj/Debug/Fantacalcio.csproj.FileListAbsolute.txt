@@ -1,0 +1,7 @@
+C:\Users\ricky\Desktop\Scuola\Informatica\4F\Fantacalcio\Fantacalcio\bin\Debug\Fantacalcio.exe.config
+C:\Users\ricky\Desktop\Scuola\Informatica\4F\Fantacalcio\Fantacalcio\bin\Debug\Fantacalcio.exe
+C:\Users\ricky\Desktop\Scuola\Informatica\4F\Fantacalcio\Fantacalcio\bin\Debug\Fantacalcio.pdb
+C:\Users\ricky\Desktop\Scuola\Informatica\4F\Fantacalcio\Fantacalcio\obj\Debug\Fantacalcio.csproj.AssemblyReference.cache
+C:\Users\ricky\Desktop\Scuola\Informatica\4F\Fantacalcio\Fantacalcio\obj\Debug\Fantacalcio.csproj.CoreCompileInputs.cache
+C:\Users\ricky\Desktop\Scuola\Informatica\4F\Fantacalcio\Fantacalcio\obj\Debug\Fantacalcio.exe
+C:\Users\ricky\Desktop\Scuola\Informatica\4F\Fantacalcio\Fantacalcio\obj\Debug\Fantacalcio.pdb
