@@ -32,24 +32,27 @@ namespace Fantacalcio
     {
         // Attributi della classe Squadra
         string nome;
+        string percorso = AppDomain.CurrentDomain.BaseDirectory + "Squadre";
         string percorsoSq;
         string percorsoPunti;
+        public int golTotali { get; set; } = 0;
         public int punti { get; set; }
         public double giornata { get; set; }
         public int golG { get; set; }
-        List<string> giocatori = new List<string>();
 
         // Costruttore della classe Squadra
         public Squadra(string squadra)
         {
             this.nome = squadra;
             // Perso il percorso per il file della squadra;
-            percorsoSq = AppDomain.CurrentDomain.BaseDirectory +  $"{nome}.txt";
-            // Preso il percorso per il file dei punti della squadra
-            percorsoPunti = AppDomain.CurrentDomain.BaseDirectory + $"{nome}_punti.txt";
-            StreamReader letturaPunti = new StreamReader(percorsoPunti);
-            punti = int.Parse(letturaPunti.ReadLine()); // Converte in int quello che lo streamreader letturaPunti legge
-            letturaPunti.Close(); // Viene chiuso il file
+            var dir = Directory.CreateDirectory(percorso);
+            percorsoSq = Path.Combine(dir.ToString(), $"{nome}.txt");
+            percorsoPunti = Path.Combine(dir.ToString(), $"{nome}_punti.txt");
+            StreamReader lettura = new StreamReader(percorsoPunti);
+            string[] letta = lettura.ReadToEnd().ToString().Trim().Split(','); // Viene salvato quello che è stato letto dentro l'array letta
+            punti = int.Parse(letta[0]); // Converte in int quello che lo streamreader lettura legge prima della ,
+            golTotali = int.Parse(letta[1]); // Vonverte in int quello che le streamreader lettura legge dopo della ,
+            lettura.Close(); // Viene chiuso il file
             giornata = 65; // Viene assegnato alla squadra un punteggio della giornata minimo
             golG = 0;
         }
@@ -71,8 +74,9 @@ namespace Fantacalcio
              * ecc.
             */
 
-            giornata += (gol * 3) - (autogol * 3) + assist - (gialli * 0.5) - rossi; // Viene calcolato il punteggio della giornata
+            giornata = 65 + (gol * 3) - (autogol * 3) + assist - (gialli * 0.5) - rossi; // Viene calcolato il punteggio della giornata
             double punteggioG = giornata;
+            golG = 0;
             if (giornata < 66) // Se il punteggio della giornata è minore di 66 allora i gol sono uguali a 0
             {
                 golG = 0;
@@ -87,12 +91,13 @@ namespace Fantacalcio
                 {
                     punteggioG -= 6; // Viene tolto 6 dal punteggio della giornata 
                     golG++; // Viene incrementato di uno il valore dei gol
+                    golTotali++;
                 } while (punteggioG > 66);
             }
         }
 
         // Metodo per stampare i giocatori della squadra in una giornata
-        public string getPuntiGiornata() 
+        public string getPuntiGiornata()
         {
             return $"I punti della giornata della squadra {nome} sono: {giornata}\nGol:{golG}";
         }
@@ -110,11 +115,21 @@ namespace Fantacalcio
             return $"{nome}";
         }
 
+        public string getGiocatori()
+        {
+            string s = "";
+            foreach (var giocatore in File.ReadLines(percorsoSq.ToString()))
+            {
+                s += $"{giocatore}\n";
+            }
+            return s;
+        }
+
         // Metodo che scrive i punti della squadra in un file, definitp dal percorso "percorsoPunti"
         public void ScriviPunti()
         {
             StreamWriter scriviPunti = new StreamWriter(percorsoPunti);
-            scriviPunti.WriteLine($"{punti}");
+            scriviPunti.WriteLine($"{punti}, {golTotali}");
             scriviPunti.Close();
         }
     }
@@ -125,7 +140,7 @@ namespace Fantacalcio
         Squadra sq1, sq2;
         string percorsoSquadre;
         string dir;
-        
+
 
         //Costruttore della classe Partita
         public Partita(Squadra squadra1, Squadra squadra2)
@@ -146,17 +161,17 @@ namespace Fantacalcio
                 sq1.ScriviPunti();
                 return $"Il vincitore della partita {sq1.toString()} vs {sq2.toString()} è {sq1.toString()}\n" +
                        $"{sq1.toString()}: {sq1.golG} gol\n" +
-                       $"{sq2.toString()}: {sq2.golG} gol\n\n"; 
+                       $"{sq2.toString()}: {sq2.golG} gol\n\n";
             }
             else if (sq1.golG < sq2.golG) // se i gol della squadra 1 son minori di quella della squadra 2 allora il vincitore è la squadra 2
             {
                 sq2.punti += 3;
                 sq2.ScriviPunti();
-                return $"Il vincitore della partita {sq1.toString()} vs {sq2.toString()} è {sq2.toString()}\n" + 
+                return $"Il vincitore della partita {sq1.toString()} vs {sq2.toString()} è {sq2.toString()}\n" +
                        $"{sq1.toString()}: {sq1.golG} gol\n" +
                        $"{sq2.toString()}: {sq2.golG} gol\n\n";
             }
-            else
+            else // se i gol delle due squadre sono uguali allora significa che la partita è finita in parità e quindi vengono incrementati i punti della squadra 1 e della squadra 2
             {
                 sq1.punti++;
                 sq2.punti++;
@@ -164,7 +179,7 @@ namespace Fantacalcio
                 sq2.ScriviPunti();
                 return $"La partita tra {sq1.toString()} e {sq2.toString()} è finita in parità\n" +
                        $"{sq1.toString()}: {sq1.golG} gol\n" +
-                       $"{sq2.toString()}: {sq2.golG} gol\n\n"; 
+                       $"{sq2.toString()}: {sq2.golG} gol\n\n";
             }
         }
 
@@ -233,7 +248,7 @@ namespace Fantacalcio
 
         public string Vincitore()
         {
-            nomi = nomi.OrderBy(x => x.punti).ToList(); // Viene ordinata la lista che contiene le squadre tramite il metodo OrderBy che ordina in modo decrescente attraverso i punti della squadra
+            nomi = nomi.OrderBy(x => x.punti).ThenBy(x => x.golTotali).ToList(); // Viene ordinata la lista che contiene le squadre tramite il metodo OrderBy che ordina in modo decrescente attraverso i punti della squadra
             nomi.Reverse(); // Viene capovolta la lista, avendo così una lista ordinata in modo crescente in base ai punti
             return $"Il vincitore del fantacalcio è la squadra {nomi[0].toString()}"; // Viene ritornata un stringa che dice chi è il vincitore del fantacalcio
         }
@@ -244,9 +259,10 @@ namespace Fantacalcio
             bool valido;
             int gol, autogol, gialli, rossi, assist;
             int nSquadre;
+            string ruolo = "";
             string nomeSq;
             string nomeCa;
-            string percorso, percorsoPuntiSq;
+            string percorso, percorsoPuntiSq, percorsoSq;
             string percorsoFileSq = AppDomain.CurrentDomain.BaseDirectory + "Squadre.txt"; // Viene preso il percorso in cui si trova il file contenente i nomi di tutte le squadre
             string imp = AppDomain.CurrentDomain.BaseDirectory + "status.txt"; // Viene preso il percorso che definisce se c'è un fantacalcio in corso
             string partFatte = AppDomain.CurrentDomain.BaseDirectory + "PartiteFatte.txt"; // Viene preso il percorso in cui si trova il file in cui è scritto il numero di partite fatte nel fantacalcio corrente
@@ -258,6 +274,7 @@ namespace Fantacalcio
 
             string rispostaNuovoFanta;
             string rispostaNuovaPartita;
+            string risposta;
 
         Repeat: // Etichetta per il goto
             if (!File.Exists(imp)) // Se il file status non esiste significa che il programma è stato lanciato per la prima volta o che è stato riavviato il Fantacalcio
@@ -284,15 +301,33 @@ namespace Fantacalcio
                     fileNomi.WriteLine($"{nomeSq}"); // Vengono scritti i nomi delle squadre su un file chiamato Squadre
                     fileNomi.Close(); // Viene chiuso il file dove vengono salvati i nomi delle squadre
                     nomiRose.Add(nomeSq); // Vengono aggiunti i nomi delle squadre alla lista nomiRose
-                    percorso = AppDomain.CurrentDomain.BaseDirectory + $"{nomiRose[i]}.txt"; // Viene creato un file per ogni squadra
-                    percorsoPuntiSq = AppDomain.CurrentDomain.BaseDirectory + $"{nomiRose[i]}_punti.txt";
-                    StreamWriter filePuntiSq = new StreamWriter(percorsoPuntiSq); // Viene creata una nuova istanza della classe StreamWriter che servirà per scrivere nel di ogni squadra i punti della squadra
-                    StreamWriter fileSq = new StreamWriter(percorso, true); // Viene creata una nuova istanza della classe StreamWriter che servirà per scrivere nel file di ogni squadra il nome della squadra
-                    for (int j = 0; j < 1; j++) // Viene iterato per tutti i giocatori della squadra
+                    percorso = AppDomain.CurrentDomain.BaseDirectory + "Squadre"; // Viene preso il percorso della directory Squadre
+                    var dir = Directory.CreateDirectory(percorso); // viene creata la directory Squadre
+                    percorsoSq = Path.Combine(dir.ToString(), $"{nomiRose[i]}.txt"); // Viene combinata la directory creata e il nome della squadra
+                    percorsoPuntiSq = Path.Combine(dir.ToString(), $"{nomiRose[i]}_punti.txt"); // Viene combinata la directory creata con il nome della squadra e i punti (es. Milan_punti)
+                    StreamWriter fileSq = new StreamWriter(percorsoSq, true); // Viene creata una nuova istanza della classe StreamWriter che servirà per scrivere nel file di ogni squadra il nome della squadra
+                    StreamWriter filePuntiSq = new StreamWriter(percorsoPuntiSq); // Viene creata una nuova istanza della classe StreamWriter che servirà per scrivere nel file di ogni squadra i punti della squadra 
+                    for (int j = 0; j < 11; j++) // Viene iterato per tutti i giocatori della squadra
                     {
+                        if (j == 0) // Se la j = 0 allora significa che si sta inserendo il portiere
+                        {
+                            ruolo = "Portiere";
+                        }
+                        else if (j >= 1 && j < 5) // Se la j è compreso 1 e 4 allora si sta inserendo i difensori
+                        {
+                            ruolo = "Difensore";
+                        }
+                        else if (j >= 5 && j < 8) // Se la j è compreso 5 e 7 allora si sta inserendo i centrocampista
+                        {
+                            ruolo = "Centrocampista";
+                        }
+                        else if (j >= 8) // Se la j è maggiore di 8 allora si sta inserendo l'attaccante
+                        {
+                            ruolo = "Attaccante";
+                        }
                         do
                         {
-                            Console.WriteLine($"Inserisci il nome del {j + 1}° giocatore della {nomiRose[i]}");
+                            Console.WriteLine($"Inserisci il nome del {j + 1}° giocatore della {nomiRose[i]}, ({ruolo})");
                             nomeCa = Convert.ToString(Console.ReadLine()); // Vengono letti i nomi dei giocatori
                             Console.WriteLine("");
                         } while (nomeCa == ""); // Viene chiesto di inserire il nome del calciatore finchè esso non è vuoto
@@ -307,7 +342,7 @@ namespace Fantacalcio
                         Calciatore calciatore = new Calciatore(nomeCa, nomiRose[i], prezzo); // Viene creata una nuova istanza della classe Calciatore
                         fileSq.WriteLine($"Nome: {nomeCa}, Prezzo d'acquisto: {prezzo}"); // Viene scritto nel file della singola squadra il nome del giocatore con il relativo prezzo
                     }
-                    filePuntiSq.WriteLine("0");
+                    filePuntiSq.WriteLine("0, 0");
                     filePuntiSq.Close();
                     fileSq.Close(); // Viene chiuso il file della squadra
                 }
@@ -338,21 +373,21 @@ namespace Fantacalcio
             }
             Fanta fanta = new Fanta(squadre); // Viene creato un Fanta con tutte le squadre
         ContinuoFanta:
-            Console.WriteLine($"Partite Fatte: {partiteFatte}"); 
-            Console.WriteLine("----------------------\n" +
-                              "|Squadra   |   Punti:|\n" +
-                              "----------------------\n");
+            Console.WriteLine($"Partite Fatte: {partiteFatte}");
+            Console.WriteLine("-------------------------------\n" +
+                              "|Squadra   |   Punti:|   Gol: |\n" +
+                              "-------------------------------\n");
 
-            squadre = squadre.OrderBy(x => x.punti).ToList();
-            squadre.Reverse();
+            squadre = squadre.OrderBy(x => x.punti).ThenBy(x => x.golTotali).ToList(); // Viene ordianta la lista in base ai punti e ai gol della squadra, per facilitare la determinazione del vincitore
+            squadre.Reverse(); // Viene capovolta la lista, perchè se no sarebbe in ordine decrescente, facendolo così diventare in ordine crescente
 
             foreach (Squadra squadra in squadre) // Viene iterato per tutte le squadre
             {
-                Console.WriteLine($"{squadra.toString()}   |   {squadra.punti}\n"); // Vengon stampati il nome della squadra e i relativi punti          
+                Console.WriteLine($"{squadra.toString()}   |   {squadra.punti}  |   {squadra.golTotali}\n"); // Vengon stampati il nome della squadra e i relativi punti e gol          
             }
 
-            if (partiteFatte != 5)
-            {             
+            if (partiteFatte != 5) // Se le partite fatte sono diverse da 5, significa che il fantacalcio non è giunto al termine
+            {
                 do
                 {
                     Console.WriteLine("Iniziare una nuova partita?");
@@ -367,12 +402,12 @@ namespace Fantacalcio
                     for (int i = 0; i < nomiRose.Count / 2; i++) // Viene iterato per le partite da generare
                     {
                         Console.WriteLine($"{fanta.CreazionePartita()}"); // Viene stampata a schermo le varie partite create attraverso il metodo CreazionePartita della classe Fanta                 
-                    }             
+                    }
                     Console.WriteLine();
 
                     for (int j = 0; j < nomiRose.Count; j++) // Viene iterato per tutte le squadre
                     {
-               
+
                         // Vengono chiesto i gol della squadra
                         do
                         {
@@ -381,7 +416,7 @@ namespace Fantacalcio
                             valido = int.TryParse(b, out gol);
                             Console.WriteLine("");
                         } while (!valido | gol < 0);
-                        
+
                         // Vengono chiesti gli autogol della squadra
                         do
                         {
@@ -432,7 +467,7 @@ namespace Fantacalcio
 
                     for (int i = 0; i < nomiRose.Count / 2; i++)
                     {
-                        // Vengono stampate le partite
+                        // Vengono stampate i vincitori della giornata
                         Console.WriteLine($"{fanta.nomiSqPar[i].vincitore()}");
                         squadre[i].resettaGiornata();
                     }
@@ -445,29 +480,44 @@ namespace Fantacalcio
                     Console.WriteLine("\n\nPremi un tasto per continuare");
                     Console.ReadKey();
                     Console.Clear();
-                    
+
                     // Vengono presi tutti i file delle partite e vengono eliminati
                     string[] filePartite = Directory.GetFiles(AppDomain.CurrentDomain.BaseDirectory + "partite", "*.txt");
                     foreach (string file in filePartite)
                     {
                         File.Delete(file);
                     }
-                    
+
                     // Ritorna all'etichetta OntinuoFanta
                     goto ContinuoFanta;
 
                 }
                 else // Se la risposta è no allora il programma terminerà
                 {
-                    Console.WriteLine("Uscita");
-                    for (int i = 0; i < 10; i++)
+                    do
                     {
-                        Console.Write("# ");
-                        Thread.Sleep(200); // Viene stampata una serie di #
+                        Console.WriteLine("Vuoi vedere le squadre?");
+                        risposta = Convert.ToString(Console.ReadLine());
+                    } while (risposta.ToUpper() != "SI" && risposta.ToUpper() != "S" && risposta.ToLower() != "sì" && risposta.ToUpper() != "NO" && risposta.ToUpper() != "N");
+                    if (risposta.ToUpper() == "S" || risposta.ToUpper() == "SI" || risposta.ToLower() == "sì")
+                    {
+                        foreach (Squadra sq in squadre) // Per ogni squadra nella lista squadre
+                        {
+                            Console.WriteLine($"\nSquadra {sq.toString()}"); // Viene stampato il nome della squadra
+                            Console.WriteLine($"{sq.getGiocatori()}"); // Vengono stampati i giocatori della squadra
+                        }
+                        Console.WriteLine("\n\n\nPremi un tasto per continuare\n");
+                        Console.ReadKey();
+                        Console.Clear();
+                        goto ContinuoFanta;
                     }
-                    Environment.Exit(0); // Serve per uscire dal programma
+                    else
+                    {
+                        Console.Clear();
+                        goto ContinuoFanta;
+                    }
                 }
-            
+
             }
             else // Se le partite sono 5, quindi si è arrivato alla fine del fanta
             {
@@ -487,15 +537,21 @@ namespace Fantacalcio
                         {
                             File.Delete(f); // Vengono eliminati tutti i file                         
                         }
-                        nomiRose.Clear(); // Vengono eliminate tutte le squadre dall'array nomiRose                                
+                        string[] fileSquadre = Directory.GetFiles(AppDomain.CurrentDomain.BaseDirectory + "Squadre", "*.txt"); // Vengono presi tutti i file txt nella directory Squadre
+                        foreach (string f in fileSquadre) //Per ogni file trovato, viene eliminato 
+                        {
+                            File.Delete(f);
+                        }
+                        nomiRose.Clear(); // Vengono eliminate tutte le squadre dall'array nomiRose
+                        Directory.Delete(AppDomain.CurrentDomain.BaseDirectory + "Squadre"); // Viene eliminata la directory Squadre
                     }
                     catch // Se non riesce dà un errore
                     {
                         Console.WriteLine("Errore");
                     }
                     partiteFatte = 0;
-                    nomiRose.Clear();
-                    squadre.Clear();
+                    nomiRose.Clear(); // Viene svuotata la lista nomiRose
+                    squadre.Clear(); // Viene svuotata la lista squadre
                     Console.Clear(); // Viene pulita la console
                     goto Repeat; // Viene ricominciato un altro fantacalcio andando alla etticherra Repeat
                 }
@@ -505,7 +561,7 @@ namespace Fantacalcio
                     for (int i = 0; i < 10; i++)
                     {
                         Console.Write("# ");
-                        Thread.Sleep(200);
+                        Thread.Sleep(200); // aspetta 0.2 secondi
                     }
                     Environment.Exit(0);
                 } //Da implementare alla fine del fanta
